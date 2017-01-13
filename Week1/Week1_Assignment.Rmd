@@ -1,8 +1,8 @@
 ---
-title: "Week 1 Assignment: Basic R"
-author: "Erik Parker; Z620: Quantitative Biodiversity, Indiana University"
-date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: pdf_document
+title: 'Week 1 Assignment: Basic R'
+author: 'Erik Parker; Z620: Quantitative Biodiversity, Indiana University'
+date: '`r format(Sys.time(), ''%d %B, %Y'')`'
+output: html_document
 geometry: margin=2.54cm
 ---
 
@@ -121,6 +121,7 @@ Now, do the following:
 k <- c(15,25,46,12,89)
 k*x
 d <- c(w[2:5], k[1:4])
+d
 
 
 ```
@@ -132,12 +133,16 @@ In the R code chunk below, calculate the **summary statistics** (i.e., maximum, 
 ```{r}
 v <- c(16.4, 16.0, 10.1, 16.8, 20.5, NA, 20.2, 13.1, 24.8, 20.2, 25.0, 20.5, 30.5, 31.4, 27.1)
 
-summary(v)
-mean(v, trim = 0)
-mean(v)
-var(v)
-sd(v)
-sd(v)/sqrt(length(v))
+summary.v <- summary(v)
+summary.v
+sum.v <- sum(v, na.rm = TRUE)
+sum.v
+var.v <- var(v, na.rm = TRUE)
+var.v
+sd.v <- sd(v, na.rm = TRUE)
+sd.v
+standard.error.v <- sd(v, na.rm = TRUE)/sqrt(length(v))
+standard.error.v
 
 ```
 
@@ -150,9 +155,10 @@ Make the mean of the first column equal to 8 with a standard deviation of 2 and 
 
 ```{r}
 
-
-
-
+first <- c(rnorm(5, mean = 8, sd = 2))
+second <- c(rnorm(5, mean = 25, sd = 10))
+matrix.q5 <- matrix(c(first,second),nrow = 5, ncol = 2)
+matrix.q5
 
 ```
 
@@ -161,7 +167,7 @@ What do the arguments in this function specify?
 Remember to use `help()` or type `?rnorm`.
 
 > Answer 1:
-
+The "rnorm" function generates a random set of numbers of length "n" which fit the normal distribution with a certain mean and standard deviation specified by the arguments "mean" and "sd" respectively.
 
 In the R code chunk below, do the following: 
 1) Load `matrix.txt` from the Week1 data folder as matrix `m`.
@@ -170,7 +176,9 @@ In the R code chunk below, do the following:
 
 ```{r}
 
-
+m <- read.table("data/matrix.txt")
+m.transposed <- t(m)
+dim(m.transposed)
 
 ```
 
@@ -178,7 +186,7 @@ In the R code chunk below, do the following:
 ***Question 2***: What are the dimensions of the matrix you just transposed?
 
 > Answer 2:
-
+The transposed matrix is 5X10. It has 5 rows and 10 columns.
 
 ###Indexing a Matrix
 
@@ -188,12 +196,17 @@ In the R code chunk below, do the following:
 
 ```{r}
 
+m[ ,c(1,2,4,5)]
+m.nolast <- m[1:9,]
+m.nolast
 
 ```
 
 ***Question 3***: Describe what we just did in the last series of indexing steps.
 
 > ***Answer 3***:
+In the first step we wanted to retreive all columns aside from the third one. To do this we needed to use square brackets to return data from the matrix "m", and then additionally specify which columns we were interested in by using "c()" to combine the columns of interest into a single vector which was placed to the right of the comma within the square brackets used as this position corresponds to columns.
+> For the second step I used a very similar process, this time creating a new matrix called "m.nolast" which contained only the first 9 rows of matrix "m". The main difference here being that I was interested in retreiving the rows, so my entry was to the left of the comma, and the rows of interest were sequential so I could use a colon instead of the "c()" command.
 
 
 ## 6) BASIC DATA VISUALIZATION AND STATISTICAL ANALYSIS
@@ -205,6 +218,8 @@ In the R code chunk below, do the following:
 
 ```{r}
 
+zoo <- read.table("data/zoop_nuts.txt", sep = "\t", header = TRUE)
+str(zoo)
 
 ```
 
@@ -217,6 +232,10 @@ In the R code chunk below, do the following:
 
 ```{r}
 
+zoo.m <- as.matrix(zoo[,c(3:8)])
+pairs(zoo.m)
+cor1.zoo.m <- cor(zoo.m)
+cor1.zoo.m
 
 ```
 
@@ -224,6 +243,7 @@ In the R code chunk below, do the following:
 ***Question 4***: Describe some of the general features based on the visualization and correlation analysis above?
 
 > Answer 4:
+Probably as expected, many of the inorganic nutrient concentration variables are very highly correlated with the total inorganic nutrient concentration variable. More interesting are the findings that zooplankton biomass is pretty highly correlated with all of the inorganic nutrient levels (especially Nitrogen and total concentration), and that it is (very) slightly inversely correlated wit chlorophyll a concentrations.
 
 
 In the R code chunk below, do the following:
@@ -233,6 +253,12 @@ In the R code chunk below, do the following:
 
 ```{r}
 
+install.packages("psych")
+require(psych)
+cor2.zoo.m <- corr.test(zoo.m, method = "pearson", adjust = "BH")
+cor.nonpar.zoo.m <- corr.test(zoo.m, method = "kendall", adjust = "BH")
+print(cor2.zoo.m)
+print(cor.nonpar.zoo.m)
 
 
 ```
@@ -244,12 +270,18 @@ When should one use non-parametric methods instead of parametric methods?
 With the Pearson's method, is there evidence for false discovery rate due to multiple comparisons? Why is false discovery rate important?
 
 > ***Answer 5***: 
+From corr.test I learned that the results of a correlation test are quite different between parametric and non-parametric methods. Here the parametric Pearson's test returned much higher correlation values across the board than did the non-parametric Kendall's test. 
+>In general, it seems best to rely on non-parametric methods when the data being analyzed doesn't clearly come from a normal distribution, and when there are a significant number of outliers present in the dataset.
+>There does seem to be evidence for a high false discovery rate with Pearson's as 
 
 
 In the R code chunk below, use the `corrplot` function in the *corrplot* package to produce the ellipse correlation plot in the handout.
 
 ```{r}
 
+install.packages("corrplot")
+require("corrplot")
+corrplot(cor1.zoo.m, method = "ellipse")
 
 ```
 
@@ -262,9 +294,16 @@ In the R code chunk below, do the following:
 
 ```{r}
 
-
-
-
+ZTreg <- lm(ZP ~ TN, data = zoo)
+ZTreg
+summary(ZTreg)
+plot(zoo$TN, zoo$ZP, ylim = c(0,10), xlim = c(500,5000), xlab = expression(paste("Total Nitrogen (", mu, "g/L)")), ylab = "Zooplankton Biomass (mg/L)", las =1)
+text(zoo$TN, zoo$ZP, zoo$NUTS, pos = 3, cex =0.8)
+newTN <- seq(min(zoo$TN), max(zoo$TN), 10)
+regline <- predict(ZTreg, newdata = data.frame(TN = newTN))
+lines(newTN, regline)
+conf95 <- predict(ZTreg, newdata = data.frame(TN = newTN), interval = c("confidence"), level = 0.95, type = "response")
+matlines(newTN, conf95[, c("lwr", "upr")], type = "l", lty = 2, lwd = 1, col = "black")
 
 
 
