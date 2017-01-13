@@ -269,7 +269,7 @@ Specifically, are the results sensitive to whether you use parametric (i.e., Pea
 When should one use non-parametric methods instead of parametric methods?
 With the Pearson's method, is there evidence for false discovery rate due to multiple comparisons? Why is false discovery rate important?
 
-> ***Answer 5***: 
+> Answer 5: 
 From corr.test I learned that the results of a correlation test are quite different between parametric and non-parametric methods. Here the parametric Pearson's test returned much higher correlation values across the board than did the non-parametric Kendall's test. 
 >In general, it seems best to rely on non-parametric methods when the data being analyzed doesn't clearly come from a normal distribution, and when there are a significant number of outliers present in the dataset.
 >There does seem to be evidence for a high false discovery rate with Pearson's as 
