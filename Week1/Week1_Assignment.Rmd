@@ -1,8 +1,10 @@
 ---
 title: 'Week 1 Assignment: Basic R'
 author: 'Erik Parker; Z620: Quantitative Biodiversity, Indiana University'
-date: '`r format(Sys.time(), ''%d %B, %Y'')`'
-output: html_document
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  pdf_document: default
+  html_document: default
 geometry: margin=2.54cm
 ---
 
@@ -52,7 +54,7 @@ In the R code chunk below, please provide the code to:
 
 rm(list=ls())
 getwd()
-setwd("~/Users/erikpark/GitHub/QB2017_Parker/Week1")
+setwd("/var/host/media/removable/USB Drive/GitHub/QB2017_Parker/Week1")
 
 ```
 
@@ -253,7 +255,7 @@ In the R code chunk below, do the following:
 
 ```{r}
 
-install.packages("psych")
+#install.packages("psych")
 require(psych)
 cor2.zoo.m <- corr.test(zoo.m, method = "pearson", adjust = "BH")
 cor.nonpar.zoo.m <- corr.test(zoo.m, method = "kendall", adjust = "BH")
@@ -270,16 +272,16 @@ When should one use non-parametric methods instead of parametric methods?
 With the Pearson's method, is there evidence for false discovery rate due to multiple comparisons? Why is false discovery rate important?
 
 > Answer 5: 
-From corr.test I learned that the results of a correlation test are quite different between parametric and non-parametric methods. Here the parametric Pearson's test returned much higher correlation values across the board than did the non-parametric Kendall's test. 
->In general, it seems best to rely on non-parametric methods when the data being analyzed doesn't clearly come from a normal distribution, and when there are a significant number of outliers present in the dataset.
->There does seem to be evidence for a high false discovery rate with Pearson's as 
+From corr.test I learned that the results of a correlation test are quite different between parametric and non-parametric methods. Here the parametric Pearson's test returned much higher correlation values across the board than did the non-parametric Kendall's test. Additionally, 
+>In general, it seems best to rely on non-parametric methods when the data being analyzed doesn't clearly come from a normal distribution, when dealing with ordinal or ranked data, when sample sizes are small (and don't adaquately reflect a normal population) and when there are a significant number of outliers present in the dataset.
+>There does seem to be evidence for false discovery with Pearson's as the raw probability values reported below the diagonal are in some cases lower (more significant) than the probabilities above the diagonal which have been adjusted for multiple comparisons. In this particular case it doesn't seem to be of too much concern though as the majority of the probabilities are apparently < 0.00 either raw or adjusted. In general though, false discovery rate is important when multiple comparisons are performed, especially when only testing at an arbitrary confidence level such as 0.05, because as the number of comparisons increases it becomes more and more likely of finding a result of p < 0.05 due just to chance alone. As an example, if we are running 1000 comparisons, we might expect to find 50 results as significant in error if we use a standard cutoff of 0.05 
 
 
 In the R code chunk below, use the `corrplot` function in the *corrplot* package to produce the ellipse correlation plot in the handout.
 
 ```{r}
 
-install.packages("corrplot")
+#install.packages("corrplot")
 require("corrplot")
 corrplot(cor1.zoo.m, method = "ellipse")
 
@@ -312,23 +314,36 @@ matlines(newTN, conf95[, c("lwr", "upr")], type = "l", lty = 2, lwd = 1, col = "
 ***Question 6***: Interpret the results from the regression model
 
 > ***Answer 6***:
-
+> The above linear regresion seems to show a pretty good predictive ability of Total Nitrogen concentration for overall Zooplankton Biomass across all treatments.  When we look more closely at individual tratments though, it seems as though this predictive model performs best at low and medium nutrient levels (many L and M points falling within the 95% confidence interval), and not so well at high condition (most H points falling outside the 95% CI).
 
 
 ***Question 7***: Explain what the `predict()` function is doing in our analyses.
 
 > ***Answer 7***:
+> In the above analyses, the predict() function was used to generate predicted values for Zooplnakton Biomass for particular Total Nitrogen levels based on the results of the linear regression for ZP on TN performed earlier.  These predicted values were then used to generate the regression line and 95% CI curves displayed on the graph above.
+
+
 
 Using the R code chunk below, use the code provided in the handout to determine if our data meet the assumptions of the linear regression analysis. 
 
 ```{r}
+par(mfrow = c(2,2), mar = c(5.1, 4.1, 4.1, 2.1))
+plot(ZTreg)
+
 
 ```
 
 + Upper left: is there a random distribution of the residuals around zero (horizontal line)?
+> Not perfect, but it looks pretty good. I think that the resulting line is close enough to horizontal for us to conclude that the distribution of the residuals is close to random.
+
 + Upper right: is there a reasonably linear relationship between standardized residuals and theoretical quantiles? Try `help(qqplot)`
+> Certainly not the worst QQ plot I've ever seen. This relationship appears to be quite close to normal, not perfect by any means but very good for real data.
+
 + Bottom left: again, looking for a random distribution of sqrt(standardized residuals)
+> This distribution appears to be less random than the upper left plot without the sqrt transformation applied to the residuals.  I don't think this is neccessarily anything to be concerned with though, as the non-transformed values seemed to fit the assumption of random distribution just fine.
+
 + Bottom right: leverage indicates the influence of points; contours correspond with Cook's distance, where values > |1| are "suspicious"
+> There seem to be a fair number of datapoints with values for cooks distance >|1|, with three points in particular (18, 21, and 22) being close to or greater than |2|. It would be interesting to run the analyses again without these outliers and see if the results are greatly affected with these highly influential points removed.
 
 ### Analysis of Variance (ANOVA)
 
@@ -341,10 +356,18 @@ Using the R code chunk below, do the following:
 
 ```{r}
 
+Nuts <- factor(zoo$NUTS, levels = c('L', 'M', 'H'))
+zp.means <- tapply(zoo$ZP, Nuts, mean)
+sem <- function(x){sd(na.omit(x))/sqrt(length(na.omit(x)))}
+zp.sem <- tapply(zoo$ZP, Nuts, sem)
 
+bp <- barplot(zp.means, ylim = c(0, round(max(zoo$ZP), digits = 0)), pch = 15, cex =1.25, las = 1, cex.lab = 1.4, cex.axis = 1.25, xlab = "nutrient supply", ylab = "zooplankton biomass (mg/L)", names.arg = c("low", "medium", "high"))
+arrows(x0 = bp, y0 =zp.means, y1 = zp.means - zp.sem, angle = 90, length = 0.1, lwd = 1)
+arrows(x0 = bp, y0 =zp.means, y1 = zp.means + zp.sem, angle = 90, length = 0.1, lwd = 1)
 
-
-
+fitanova <- aov(ZP ~ NUTS, data = zoo)
+summary(fitanova)
+TukeyHSD(fitanova)
 
 
 ```
@@ -353,13 +376,19 @@ Using the R code chunk below, do the following:
 Do you have any concerns about this analysis?
 
 > ***Answer 8***:
-
+> These overall ANOVA results seem to be saying that there is a real difference between the three nutrient groups being analyzed in this dataset, and the post-hoc Tukey's test tells us that this overall difference is really coming from differences between the low and high, and medium and high samples - but not the medium and low samples. This causes me some concern when compared to the regression results, as there we saw that the medium and low treatments fit the analysis quite well and fell along the regression line whereas the high treatment as a whole was by and large not well represented by the predicted regression line or 95% confidence intervals.  I am not completely confident in my analysis here, but I think that this means that we might just be seeing a significant difference between the medium/low and high treatments (but not medium and low) just because the high treatment samples did not fit the predicted relationship between TN and ZP which was more generated thanks to the weight of the agreement between the large number of low and medium samples outweighing the disagreement from the high samples.
 
 Using the R code chunk below, use the diagnostic code provided in the handout to determine if our data meet the assumptions of ANVOA (similar to regression). 
 
 ```{r}
+par(mfrow = c(2, 2), mar = c(5.1, 4.1, 4.1, 2.1))
+plot(fitanova)
+
 
 ```
+
+> Answer:
+Aside from the constant leverage analysis which contains many points of concern in the high nutritional treatment group (consistent, I believe, with my concerns expressed above in answer 8) the other three graphs seem to show that the data meet the assumptions of normality and homoscedasticity.
 
 ## SYNTHESIS: SITE-BY-SPECIES MATRIX
 
@@ -388,11 +417,29 @@ The remaining columns of data refer to the biomass (µg/L) of different zooplank
 ***Question 9***: With the visualization and statistical tools that we learned about in the Week 1 Handout, use the site-by-species matrix to assess whether and how different zooplankton taxa were responsible for the total biomass (ZP) response to nutrient enrichment. Describe what you learned below in the "Answer" section and include appropriate code in the R chunk.
 
 ```{r}
-
+zoop <- read.table("data/zoops.txt", sep = "\t", header = TRUE)
+zoop.m <- as.matrix(zoop[,3:11])
+mean.zoop.Low <- zoop.m[mean(1:8),]
+mean.zoop.Medium <- zoop.m[mean(9:16),]
+mean.zoop.High <- zoop.m[mean(17:24),]
+mean.zoop.L <- zoop[mean(1:8),2:11]
+mean.zoop.M <- zoop[mean(9:16),2:11]
+mean.zoop.H <- zoop[mean(17:24),2:11]
+mean.zoop.L
+mean.zoop.M
+mean.zoop.H
+barplot(mean.zoop.Low, xlab = "Zooplankton identity", ylab = "Zooplankton biomass (mg/L", main = "Low nutrient treatment")
+barplot(mean.zoop.Medium, xlab = "Zooplankton identity", ylab = "Zooplankton biomass (mg/L", main = "Medium nutrient treatment")
+barplot(mean.zoop.High, xlab = "Zooplankton identity", ylab = "Zooplankton biomass (mg/L", main = "High nutrient treatment")
 
 
 
 ```
+
+> Answer:
+Above, we learned that as nutrient enrichment increases so does total zooplankton biomass. Here in this analysis we saw that at both medium and high nutrient levels the most abundant taxa by total biomass were the Chydorus. This was especially true at high nutrient condition where the closest taxa by biomass, the Simocephallus, were almost 13 times less abundant. At medium nutrient levels, the relationship between Chydorus and Simocephallus was less extreme, with Chydorus responsible for a little over twice as much biomass.
+> At low nutrient conditions, the picture is a little different, though Chydorus does still represent the single largest taxa in terms of biomass. Here though, both the Ceriodaphnia species and cyclopoid copepods contribute about half of the biomass generated by Chydorus. So while one taxa still reigns as king of the biomass at low nutrient conditions, the difference between it and other community members is not nearly as great as it is at higher nutrient conditions.
+
 
 ## SUBMITTING YOUR ASSIGNMENT
 Use Knitr to create a PDF of your completed Week1_Assignment.Rmd document, push the repo to GitHub, and create a pull request.
