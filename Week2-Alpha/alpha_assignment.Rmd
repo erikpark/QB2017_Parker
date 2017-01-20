@@ -143,6 +143,7 @@ In the R code chunk below, do the following:
 
 1. Load the microbial dataset (located in the `/Week2-Alpha/data` folder),
 
+
 2. Transform and transpose the data as needed (see handout),
 
 3. Create a vector (`soilbac1`) with the bacterial OTU abundances at any site in the dataset,
@@ -153,10 +154,19 @@ In the R code chunk below, do the following:
 
 ```{r}
 
+soilbac <- read.table("./data/soilbac.txt", sep = "\t", header = TRUE, row.names = 1)
+soilbac.t <- as.data.frame(t(soilbac))
+soilbac1 <- soilbac.t[1,]
 
+soil.rich.site1 <- S.obs(soilbac1)
+soil.rich.site1
 
+soil.coverage.site1 <- C(soilbac1)
+soil.coverage.site1
 
+# N of site 1?
 
+sum(soilbac1)
 
 ```
 
@@ -167,11 +177,13 @@ b.  What is the observed richness of `soilbac1`?
 c.  How does coverage compare between the BCI sample (`site1`) and the KBS sample (`soilbac1`)?
 
 > ***Answer 3a***:  
+> The total number of sequences recovered from the sample 'soilbac1' is 2119.
 
 > ***Answer 3b***: 
+> The observed richness of 'soilbac1' is 1074.
 
 > ***Answer 3c***:  
-
+> The coverage of soilbac1 is much lower than that of site1 from BCI. We found a coverage of 0.65 for the soil sample at site 1, and a coverage of 0.93 at site 1 of the BCI sample. This makes some sense to me, as I might naively expect to find more rare soil microbial species in a sample then I would expect to find rare tree species.
 
 ### Richness Estimators
 
