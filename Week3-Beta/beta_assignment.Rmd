@@ -1,6 +1,6 @@
 ---
 title: "Assignment: Among Site (Beta) Diversity"
-author: "Student Name; Z620: Quantitative Biodiversity, Indiana University"
+author: "Erik Parker; Z620: Quantitative Biodiversity, Indiana University"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: pdf_document
 geometry: margin=2.54cm
@@ -44,8 +44,10 @@ In the R code chunk below, provide the code to:
 
 ```{r}
 
-
-
+rm(list = ls())
+getwd()
+setwd("./")
+require(vegan)
 
 ```
 
@@ -58,8 +60,24 @@ In the R code chunk below, do the following:
 
 ```{r}
 
+package.list <- c('vegan', 'ade4', 'viridis', 'gplots', 'BiodiversityR', 'indicspecies')
+for (package in package.list) {
+  if (!require(package, character.only = T, quietly = T)) {
+    install.packages(package)
+    library(package, character.only = T)
+  }
+}
+
+data(doubs)
+
+str(doubs, max.level=1)
+head(doubs$env)
+str(doubs$fish)
+str(doubs$species)
 
 
+fish <- as.data.frame(doubs$fish)
+dim(fish)
 
 ```
 
@@ -70,8 +88,13 @@ b.  How many fish species are there in the `doubs` dataset?
 c.  How many sites are in the `doubs` dataset?
 
 > ***Answer 1a***:  
+> The doubs list contains 4 different objects: env, fish, xy, and species.
+
 > ***Answer 1b***:  
+> There seems to be 27 fish species in the doubs dataset.
+
 > ***Answer 1c***:  
+> The doubs dataset contains 30 sites.
 
 ### Visualizing the Doubs River Dataset
 
@@ -82,8 +105,13 @@ b.  How does Brown Trout (*Salmo trutta*) abundance vary along the sampled reach
 c.  What do these patterns say about the limitations of using richness when examining patterns of biodiversity?
 
 > ***Answer 2a***:  
+> From the figures included in the handout: it appears that fish richness is highest in the middle bend of the river, and at the most downstream locations in the river.  Richness is not very high comparitively at the upstream locations sampled.
+
 > ***Answer 2b***:  
+> Counter to the conclusion drawn from the fish richness data, it seems like the brown trout abundance is highest at the upstream sites, and at the sites immediately upstream from the middle bend of the river.
+
 > ***Answer 2c***:  
+> These patterns seem to point to the fact that richness is limited when examining patterns of biodiversity because it is an overall measure of the number of species present per site, but it doesn't tell you anything about what specific species are driving those patterns.  Here in particular we see that the brown trout abundance values are in almost complete disagreement with the overal fish species richness, meaning that just looking at richness overall is only giving us part of the picture and in particular leaves out the arguably more interesting insight of who is driving the larger richness patterns seen.
 
 ## 3) QUANTIFYING BETA-DIVERSITY
 
@@ -94,11 +122,37 @@ In the R code chunk below, do the following:
 
 ```{r}
 
+beta.W <- function(site.by.species = "", sitenum1 = "", sitenum2 = "", pairwise = FALSE){
+  
+  if (pairwise == TRUE){
+    if (sitenum1 == "" | sitenum2 == ""){
+      print("Error: please specify sites to compare")
+      return(NA)}
+    
+    site1 = site.by.species[sitenum1,]
+    site2 = site.by.species[sitenum2,]
+    site1 = subset(site1, select = site1 > 0)
+    site2 = subset(site2, select = site2 > 0)
+    gamma = union(colnames(site1), colnames(site2))
+    s = length(gamma)
+    a.bar = mean(c(specnumber(site1), specnumber(site2)))
+    b.w = round(s/a.bar - 1, 3)
+    return(b.w)
+  }
+  
+  else{
+    SbyS.pa <- decostand(site.by.species, method = "pa")
+    S <- ncol(SbyS.pa[,which(colSums(SbyS.pa) > 0)])
+    a.bar <- mean(specnumber(SbyS.pa))
+    b.w <- round(S/a.bar, 3)
+    return(b.w)
+  }
+}
 
 
 
-
-
+beta.W(site.by.species = fish, sitenum1 = 1, sitenum2 = 2, pairwise = TRUE)
+beta.W(site.by.species = fish, sitenum1 = 1, sitenum2 = 10, pairwise = TRUE)
 
 
 
@@ -112,7 +166,11 @@ b.  Is the fish assemblage at site 1 more similar to the one at site 2 or site 1
 c.  Using your understanding of the equation $\beta_{w} = \gamma/\alpha$, how would your interpretation of $\beta$ change if we instead defined beta additively (i.e., $\beta = \gamma - \alpha$)?
 
 > ***Answer 3a***:  
+> Based on the beta.W equation we are using above, it seems as though alpha and beta diversity contribute to gamma diversity multiplicatively. As both the species diversity within habitats (alpha), and the differentiation among habitats (beta) increases, so does the total species diversity in any given landscape (gamma).
+
 > ***Answer 3b***:  
+> Using the function constructed above, we see that the pairwise comparison between site 1 and 2 returns a lower value for Whitaker's species turnover than does the comparison between site 1 and 10, meaning that there is lower beta diversity between sites 1 and 2, and so that the sites are more similar to eachother.
+
 > ***Answer 3c***:  
 
 ### The Resemblance Matrix
