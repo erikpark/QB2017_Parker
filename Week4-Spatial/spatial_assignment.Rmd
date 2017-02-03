@@ -1,6 +1,6 @@
 ---
 title: "Assignment: Spatial Diversity"
-author: "Student Name; Z620: Quantitative Biodiversity, Indiana University"
+author: "Erik Parker; Z620: Quantitative Biodiversity, Indiana University"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: pdf_document
 geometry: margin=2.54cm
@@ -38,6 +38,9 @@ In the R code chunk below, provide the code to:
 
 ```{r, results = 'hide'}
 
+rm(list=ls())
+getwd()
+setwd("./")
 
 ```
 
@@ -48,15 +51,37 @@ In the R code chunk below, do the following:
 1. Install and/or load the following packages: `vegan`, `sp`, `gstat`, `raster`, `RgoogleMaps`, `maptools`, `rgdal`, `simba`, `gplots`, `rgeos`
 
 ```{r, results = 'hide', message = FALSE, warning = FALSE} 
-
-
+install.packages('vegan')
+require(vegan)
+install.packages('sp') # Classes and methods for handling spatial data 
+require(sp)
+install.packages('gstat') # Methods for geostatistical analyses
+require(gstat)
+install.packages('raster') # Methods to create a RasterLayer object
+require(raster)
+install.packages('RgoogleMaps') # For querying the Google server for static maps.
+require(RgoogleMaps)
+install.packages('maptools') # Tools for manipulating and reading geospatial data
+require(maptools)
+install.packages('rgdal') # Geospatial Data Abstraction Library
+require(rgdal)
+install.packages('simba') # Similarity measures for community data
+require(simba)
+install.packages('gplots') # Programming tools for plotting data
+require(gplots)
+install.packages('rgeos') # Geostatistical package, used here for semivariograms
+require(rgeos)
+install.packages("rgdal")
+require(rgdal)
 
 ```
 
 ***Question 1***:  What are the packages `simba`, `sp`, and `rgdal` used for?
 
 > ***Answer 1***:  
-
+> Simba: used for reshaping species lists into matrices, and back again, and also for calculation of similarty measures when working with presence/absence data.
+> Sp: provides functions for importing, manipulating, and exporting spatial data.
+> Rgdal: Access to a geospatial data abstraction library.
 
 ## 3) LOADING DATA
 In the R code chunk below, use the example in the handout to do the following:  
@@ -68,17 +93,29 @@ In the R code chunk below, use the example in the handout to do the following:
 
 ```{r, results = 'hide', message = FALSE, warning = FALSE} 
 
+Ponds <- read.table("BrownCoData/20130801_PondDataMod.csv", head = TRUE, sep = ",")
+OTUs <- read.csv("BrownCoData/SiteBySpecies.csv", head = TRUE, sep = ",")
+otu.names <- names(OTUs)
+OTUs <- as.data.frame(OTUs[-1])
+
+dim(OTUs)
+
+S.Obs <- function(x = ""){
+  rowSums(x > 0) * 1
+}
+S.Obs(OTUs)
 
 ```
 
 ***Question 2a***:  How many sites and OTUs are in the SiteBySpecies matrix? 
 
 > ***Answer 2a***:  
+> There are 51 sites and 16383 OTUs in the site by species matrix.
 
 ***Question 2b***:  What is the greatest species richness found among sites?
 
 > ***Answer 2b***:  
-
+> The greatest species richness found among sites is 3259 for the first site.
 
 ## 4) GENERATE MAPS
 
@@ -88,13 +125,19 @@ In the R code chunk below, do the following:
 This map will be centered on Brown County, Indiana (39.1 latitude, -86.3 longitude).
 
 ```{r}
+lats <- as.numeric(Ponds[,3])
+lons <- as.numeric(Ponds[,4])
 
+newmap <- GetMap(center = c(39.1,-86.3), zoom = 10,
+                 destfile = "PondsMap.png", maptype = "terrain")
+PlotOnStaticMap(newmap, zoom = 10, cex = 2, col = 'blue')
+PlotOnStaticMap(newmap, lats, lons, cex = 1, pch = 20, col = 'red', add = TRUE)
 ```
 
 ***Question 3***:  Briefly describe the geographical layout of our sites.
 
 > ***Answer 3***:  
-
+> The sites are all located around Brown county state park, with most lying the the north east of lake monroe, and a few to the south and south east of the lake.  The sites are also for the most part arranged in a few distinct clusters with little distance between them (within a cluster), and very few sites stand alone not as part of a larger cluster.
 
 In the R code chunk below, do the following:  
 
@@ -103,21 +146,35 @@ In the R code chunk below, do the following:
 ```{r}
 # 1. Import TreeCover.tif as a raster file.
 
+Tree.Cover <- raster("TreeCover/TreeCover.tif")
+
 # 2. Plot the % tree cover data
+
+plot(Tree.Cover, xlab = 'Longitude', ylab = 'Latitude',
+     main = 'Map of geospatial data for % tree cover, \n water bodies, and sample sites')
 
 # 3. Import water bodies as a shapefile.
 
+Water.Bodies <- readShapeSpatial("water/water.shp")
+
 # 4. Plot the water bodies around our study area, i.e., Monroe County.
+
+plot(Water.Bodies, border = 'cyan', axes = TRUE, add = TRUE)
 
 # 5. Convert lat-long data for ponds to georeferenced points.
 
+Refuge.Ponds <- SpatialPoints(cbind(lons, lats))
+
 # 6. Plot the refuge pond locations
+
+plot(Refuge.Ponds, line = 'r', col = 'red', pch = 20, cex = 1.5, add = TRUE)
 
 ```
 
 ***Question 4a***: What are datums and projections?
 
 > ***Answer 4a***:  
+> A datum in this case is a particular model for Earth's shape, while a projection is the way in which coordinates on a sphere are projected onto a 2-D surface.
 
 
 ## 5) UNDERSTANDING SPATIAL AUTOCORRELATION
@@ -125,6 +182,7 @@ In the R code chunk below, do the following:
 ***Question 5***: In your own words, explain the concept of spatial autocorrelation.
 
 > ***Answer 5***:
+> Sites that are close together are going to look more similar than sites further from one another in general because closer sites experience more similar environmental conditions than do distant sites, and it is more likely that species will disperse over shorter distances to other closer sites. In general, close sites are more similar than distant sites.
 
 
 ## 6) EXAMINING DISTANCE-DECAY
@@ -132,6 +190,7 @@ In the R code chunk below, do the following:
 ***Question 6***: In your own words, explain what a distance decay pattern is and what it reveals.
 
 > ***Answer 6***:
+> A distance decay pattern is a way to represent the idea of spatial autocorrelation by showing that as distance between sites increases, similarity decreases.
 
 In the R code chunk below, do the following:  
 
@@ -141,7 +200,21 @@ Note: You will need to use some of the data transformations within the *semivari
 ```{r, results = 'hide', message = FALSE, warning = FALSE}
 # 1) Calculate Bray-Curtis similarity between plots using the `vegdist()` function
 
+comm.dist <- 1 - vegdist(OTUs)
+
 # 2) Assign UTM lattitude and longitude data to 'lats' and 'lons' variables
+
+xy <- data.frame(env = Ponds$TDS, pond.name = Ponds$Sample_ID, lats = Ponds$lat, lons = Ponds$long)
+
+coordinates(xy) <- ~lats+lons
+
+proj4string(xy) <- CRS("+proj=longlat +datum=NAD83")
+
+UTM <- spTransform(xy, CRS("+proj=utm +zone=51 +ellps=WGS84"))
+UTM <- as.data.frame(UTM)
+
+xy$lats_utm <- UTM[,2]
+xy$lons_utm <- UTM[,3]
 
 # 3) Calculate geographic distance between plots and assign to the variable 'coord.dist'
 
