@@ -1,6 +1,6 @@
 ---
 title: "Phylogenetic Diversity - Traits"
-author: "Student Name; Z620: Quantitative Biodiversity, Indiana University"
+author: "Erik Parker; Z620: Quantitative Biodiversity, Indiana University"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: pdf_document
 geometry: margin=2.54cm
@@ -46,6 +46,17 @@ In the R code chunk below, provide the code to:
 
 ```{r}
 
+rm(list = ls())
+getwd()
+setwd("./")
+
+package.list <- c("ape", "seqinr", "phylobase", "adephylo", "geiger", "picante", "stats", "RColorBrewer", "caper", "phylolm", "pmc", "ggplot2",      "tidyr", "dplyr", "phangorn","pander")
+for (package in package.list) {
+    if (!require(package, character.only = TRUE, quietly = TRUE)) {
+      install.packages(package)
+      library(package, character.only = TRUE)
+    }
+}
 
 ```
 
@@ -62,6 +73,7 @@ In this exercise, we will take a phylogenetic approach to mapping phosphorus res
 Describe the differences that you observe between the files. 
 
 > ***Answer 1***: 
+> The fasta file is a list of sequences for a bunch of bacterial genes, while the afa file seems to be some sort of alignment? The fasta file is just showing nucleic acids, while the afa file also has dashes which seem like they represent gaps in some alignment of the reported genes to a reference.
 
 In the R code chunk below, do the following:
 1. read your alignment file,
@@ -71,6 +83,22 @@ In the R code chunk below, do the following:
 
 ```{r}
 
+read.aln <- read.alignment(file = "./data/p.isolates.afa", format = "fasta")
+
+p.DNAbin <- as.DNAbin(read.aln)
+
+window1 <- p.DNAbin[, 100:600]
+window2 <- p.DNAbin[,500:700]
+window3 <- p.DNAbin[,200:500]
+window4 <- p.DNAbin[,1:1000]
+
+
+#visualize windows
+
+image.DNAbin(window1, cex.lab = .5)
+image.DNAbin(window2, cex.lab = .5)
+image.DNAbin(window3, cex.lab = .5)
+image.DNAbin(window4, cex.lab = .5)
 
 ```
 
@@ -78,10 +106,13 @@ In the R code chunk below, do the following:
 Move along the alignment by changing the values in the `window` object. 
 
 a. Approximately how long are our reads?  
-b. What regions do you think would are appropriate for phylogenetic inference and why?  
+b. What regions do you think would be appropriate for phylogenetic inference and why?  
 
 > ***Answer 2a***:   
-> ***Answer 2b***:  
+> The reads are all shorter than 1000bp, most seem to be between 600bp at the longest and about 100 at the shortest.
+
+> ***Answer 2b***: 
+> It seems like the regions between ~200 and ~500 bp, and 500 and ~700 bp are the most appropriate for phylogenetic analysis as they are present in almost all of the samples. 500 to 700bp in particular seems the best. 
 
 ## 4) MAKING A PHYLOGENETIC TREE
 
@@ -98,13 +129,27 @@ In the R code chunk below, do the following:
 
 ```{r}
 
+seq.dist.raw <- dist.dna(p.DNAbin, model = "raw", pairwise.deletion = FALSE)
+
+nj.tree <- bionj(seq.dist.raw)
+
+outgroup <- match("Methanosarcina", nj.tree$tip.label)
+
+nj.rooted <- root(nj.tree, outgroup, resolve.root = TRUE)
+
+par(mar = c(1,1,2,1) + 0.1)
+plot.phylo(nj.rooted, main = "Neighbor Joining Tree", "phylogram", 
+           use.edge.length = FALSE, direction = "right", cex = 0.6,
+           label.offset = 1)
+add.scale.bar(cex = 0.7)
 
 ```
 
 ***Question 3***: What are the advantages and disadvantages of making a neighbor joining tree?   
 
 
-> ***Answer 3***:  
+> ***Answer 3***:
+> The main advantage of neighbor joining trees seems to be that it is relatively fast due to the lack of complex assumptions. The main disadvantage seems to be that it is very basic and not very reflective of evolutonary reality in many cases where relationships can't be conclusively determined just from data from a few sequences.
  
 
 
@@ -118,6 +163,32 @@ In the R code chunk below, do the following:
 
 ```{r}
 
+seq.dist.F84 <- dist.dna(p.DNAbin, model = "F84", pairwise.deletion = FALSE)
+
+par(mar = c(5,5,2,1) + 0.1)
+plot(seq.dist.raw, seq.dist.F84,
+     pch = 20, col = "red", las = 1, asp = 1, xlim = c(0,0.7), ylim = c(0, 0.7),
+     xlab = "Raw Distance", ylab = "F84 Distance ")
+abline(b = 1, a = 0, lty = 2)
+text(0.65, 0.6, "1:1")
+
+#Figure shows that the F84 distance is greater than the raw distance, apparently means that it is correcting for multiple substitutions.
+
+raw.tree <- bionj(seq.dist.raw)
+F84.tree <- bionj(seq.dist.F84)
+
+raw.outgroup <- match("Methanosarcina", raw.tree$tip.label)
+F84.outgroup <- match("Methanosarcina", F84.tree$tip.label)
+
+raw.rooted <- root(raw.tree, raw.outgroup, resolve.root = TRUE)
+F84.rooted <- root(F84.tree, F84.outgroup, resolve.root = TRUE)
+
+layout(matrix(c(1,2), 1, 2), width = c(1,1))
+par(mar = c(1, 1, 2, 0))
+plot.phylo(raw.rooted, type = "phylogram", direction = "right", show.tip.label = TRUE, use.edge.length = FALSE, adj = 0.5, cex = 0.6, label.offset = 2, main = "Raw")
+par(mar = c(1,0,2,1))
+plot.phylo(F84.rooted, type = "phylogram", direction = "left", show.tip.label = TRUE, use.edge.length = FALSE, adj = 0.5, cex = 0.6, label.offset = 2, main = "F84")
+
 
 ```
 
@@ -129,6 +200,33 @@ In the R code chunk below, do the following:
 5. be sure to format, add appropriate labels, and customize each plot.
 
 ```{r}
+
+seq.dist.T92 <- dist.dna(p.DNAbin, model = "T92", pairwise.deletion = FALSE)
+
+T92.tree <- bionj(seq.dist.T92)
+
+T92.outgroup <- match("Methanosarcina", T92.tree$tip.label)
+
+T92.rooted <- root(T92.tree, T92.outgroup, resolve.root = TRUE)
+
+par(mar = c(1, 1, 2, 0))
+plot.phylo(T92.rooted, type = "phylogram", direction = "right", show.tip.label = TRUE, use.edge.length = FALSE, adj = 0.5, cex = 0.6, label.offset = 2, main = "T92")
+
+
+par(mar = c(5,5,2,1) + 0.1)
+plot(seq.dist.T92, seq.dist.F84,
+     pch = 20, col = "red", las = 1, asp = 1, xlim = c(0,0.7), ylim = c(0, 0.7),
+     xlab = "T92 Distance", ylab = "F84 Distance ")
+abline(b = 1, a = 0, lty = 2)
+text(0.65, 0.6, "1:1")
+
+
+layout(matrix(c(1,2), 1, 2), width = c(1,1))
+par(mar = c(1, 1, 2, 0))
+plot.phylo(T92.rooted, type = "phylogram", direction = "right", show.tip.label = TRUE, use.edge.length = FALSE, adj = 0.5, cex = 0.6, label.offset = 2, main = "T92")
+par(mar = c(1,0,2,1))
+plot.phylo(F84.rooted, type = "phylogram", direction = "left", show.tip.label = TRUE, use.edge.length = FALSE, adj = 0.5, cex = 0.6, label.offset = 2, main = "F84")
+
 
 
 ```
