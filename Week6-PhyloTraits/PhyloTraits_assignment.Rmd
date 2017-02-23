@@ -657,9 +657,8 @@ tradeoff <- data.frame(nb,umax,lake) # make new data frame
 D <- (lake == "LL") * 1
 fit<-lm(log10(umax) ~ nb + D + nb * D)
 
-lake2 <- as.factor(lake)
 
-lm.frame <- cbind(tradeoff, D, group)
+lm.frame <- cbind(tradeoff, D)
 
 library(devtools)
 devtools::source_gist("524eade46135f6348140", filename = "ggplot_smooth_func.R")
