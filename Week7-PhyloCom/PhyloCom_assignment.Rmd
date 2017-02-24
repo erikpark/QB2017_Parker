@@ -1,6 +1,6 @@
 ---
 title: "Phylogenetic Diversity - Communities"
-author: "Student Name; Z620: Quantitative Biodiversity, Indiana University"
+author: "Erik Parker; Z620: Quantitative Biodiversity, Indiana University"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: pdf_document
 geometry: margin=2.54cm
@@ -42,14 +42,21 @@ In the R code chunk below, provide the code to:
 
 ```{r}
 
+rm(list=ls())
 
+getwd()
 
+setwd("./")
 
+package.list <- c("picante", "ape", "seqinr", "vegan", "fossil", "simba") 
+for (package in package.list) {
+  if (!require(package, character.only = TRUE, quietly = TRUE)) { 
+    install.packages(package, repos='http://cran.us.r-project.org') 
+    library(package, character.only = TRUE)
+  } 
+}
 
-
-
-
-
+source("./bin/MothurTools.R")
 
 ```
 
@@ -66,16 +73,27 @@ In the R code chunk below, do the following:
 2. load the site-by-species matrix using the `read.otu()` function,  
 3. subset the data to include only DNA-based identifications of bacteria,  
 4. rename the sites by removing extra characters,  
-5. remove unnecessary OTUs in the site-by-species, and   
+5. remove unnecessary OTUs in the site-by-species, and
 6. load the taxonomic data using the `read.tax()` function from the source-code file.
 
 ```{r}
 
+env <- read.table("data/20130801_PondDataMod.csv", sep = ",", header = TRUE) 
+env <- na.omit(env)
 
+# read.otu used to read in OTU data
+comm <- read.otu(shared = "./data/INPonds.final.rdp.shared", cutoff = "1")
+# grep() used here to select only DNA data, while excluding cDNA data.
+comm <- comm[grep("*-DNA", rownames(comm)), ]
 
+rownames(comm) <- gsub("\\-DNA", "", rownames(comm))
+rownames(comm) <- gsub("\\_", "", rownames(comm))
 
+comm <- comm[rownames(comm) %in% env$Sample_ID, ]
+comm <- comm[ , colSums(comm) > 0]
 
-
+# read.tax() used to load taxonomic data
+tax <- read.tax(taxonomy = "./data/INPonds.final.rdp.1.cons.taxonomy")
 
 ```
 
@@ -92,12 +110,30 @@ Next, in the R code chunk below, do the following:
 
 ```{r}
 
+ponds.cons <- read.alignment(file = "./data/INPonds.final.rdp.1.rep.fasta", format = "fasta")
 
+ponds.cons$nam <- gsub("\\|.*$", "", gsub("^.*?\t", "", ponds.cons$nam))
 
+outgroup <- read.alignment(file = "./data/methanosarcina.fasta", format = "fasta")
 
+DNAbin <- rbind(as.DNAbin(outgroup), as.DNAbin(ponds.cons))
 
+image.DNAbin(DNAbin, show.labels=T, cex.lab = 0.05, las = 1)
 
+seq.dist.jc <- dist.dna(DNAbin, model = "JC", pairwise.deletion = FALSE)
 
+phy.all <- bionj(seq.dist.jc)
+
+# Removing tips with zero abundance
+phy <- drop.tip(phy.all, phy.all$tip.label[!phy.all$tip.label %in% c(colnames(comm), "Methanosarcina")])
+
+outgroup <- match("Methanosarcina", phy$tip.label)
+
+phy <- root(phy, outgroup, resolve.root = TRUE)
+
+par(mar = c(1, 1, 2, 1) + 0.1)
+plot.phylo(phy, main = "Neighbor Joining Tree", "phylogram", show.tip.label = FALSE,
+           use.edge.length = FALSE, direction = "right", cex = 0.6, label.offset = 1)
 
 
 ```
@@ -110,6 +146,8 @@ In the R code chunk below, do the following:
 
 ```{r}
 
+# Calculating Fait's phylogenetic diversity (PD) and species richness (S)
+pd <- pd(comm, phy, include.root = FALSE)
 
 ```
 
@@ -120,7 +158,18 @@ In the R code chunk below, do the following:
 
 ```{r}
 
+# Transform PD and S with ln() to plot relationships as power-law exponents.
+par(mar = c(5, 5, 4, 1) + 0.1)
+plot(log(pd$S), log(pd$PD),
+pch = 20, col = "red", las = 1,
+xlab = "ln(S)", ylab = "ln(PD)", cex.main = 1, main="Phylodiversity (PD) vs. Taxonomic richness (S)")
 
+# Adding trend line to test for fit of data as power-law relationship
+fit <- lm('log(pd$PD) ~ log(pd$S)')
+abline(fit, col = "red", lw = 2)
+exponent <- round(coefficients(fit)[2], 2)
+legend("topleft", legend=paste("Scaling exponent = ", exponent, sep = ""),
+       bty = "n", lw = 2, col = "red")
 
 
 
@@ -133,9 +182,16 @@ c.  When would you expect these two estimates of diversity to deviate from one a
 d.  Interpret the significance of the scaling PD-S scaling exponent.
 
 > ***Answer 1a***:  
+> PD is calculated based on the branch lengths of species (OTUs) present in the sample. So, it is basically just a measure of richness scaled by taxanomic relatedness.
+
 > ***Answer 1b***:  
+> Phylodiversity seems like it is just a measure of taxonomic richness transformed with added information - the phylogenetic relatedness of the species found in the sample.
+
 > ***Answer 1c***:  
+> Phylodiversity and richness should deviate from one another when samples consist of closely related species, so there are many shared branch lengths on the phylogenetic tree of the sample. When there are no closely related species, no shared branch lengths along the tree, phylodiverstiy and standard richness should be the same?
+
 > ***Answer 1d***: 
+> The PD-S scaling exponent calculated above tells us that there is a non-significant amount of shared branches in tree calculated from the sample. When compared on a ln-ln scale, phylodiversity is 25% lower standard richness meaning that there are closely related species in our sample which add otherwise hidden structure to the data.
 
 **i. Randomizations and Null Models**  
 
@@ -144,8 +200,11 @@ In the R code chunk below, do the following:
 
 ```{r}
 
+ses.pd <- ses.pd(comm[1:2,], phy, null.model = "richness", runs = 25, include.root = FALSE)
 
+ses.pd.ts <- ses.pd(comm[1:2,], phy, null.model = "trialswap", runs = 25, include.root = FALSE)
 
+ses.pd.freq <- ses.pd(comm[1:2,], phy, null.model = "frequency", runs = 25, include.root = FALSE)
 
 ```
 
