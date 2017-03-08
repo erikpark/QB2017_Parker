@@ -1,0 +1,282 @@
+---
+title: "Roles of Geographic Location, Introduction Status and Host Species in Structuring Fungal Endophyte Communities."
+author: 
+- Savannah Bennett
+- Erik Parker
+- Quantitative Biodiversity, Indiana University
+date: "3/3/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+
+## ABSTRACT
+
+> The purpose of this project was to investigate beta diversity of endophyte communities associated with three species of native and introduced pine trees in six geographic locations. We tested the competing hypotheses that geographic location, introduction status, or host species would be more important in structuring these fungal communities. Through our analyses, we found that while host species and location were important factors in shaping these communities, introduction status was not. These results could have implications for current understanding of invasion success of pine trees specifically, and more generally, evolutionary relationships between hosts and their microbes.
+
+## 1) INTRODUCTION
+
+> Many plant species have evolved host-specific microbial communities in their root systems, which facilitates plant nutrient uptake and shapes various physiological processes (Shea & Chesson 2002; Leger & Rice 2003; Hawkes 2007). When plants are introduced into novel habitats, such physiological processes are often altered, and this is usually attributed to microbial communities and plant-soil feedbacks (Klironomos 2002). Research indicates that many invasive plants benefit from the microbial communities of novel systems (Klironomos 2002; van der Putten et al. 2007). However, few studies have investigated whether the diversity of microbial communities actually changes when plants are introduced to novel habitats. 
+
+> Gundale et al. (2016) examined the fungal endophyte communities of *Pinus contorta* root systems in areas where this species is native and regions where it has been intentionally introduced. *Pinus contorta* is native to the United States and Canada, and it has been introduced to Europe, New Zealand, and Chile. Trees native to the US were introduced to the Southern Hemisphere, while trees native to Canada were introduced to Europe. The purpose of Gundale et al. (2016)'s experiment was to determine how introduction status influences fungal endophyte diversity, and whether endophyte diversity differs between phylogentically similar and different tree species in these regions.  
+
+> Using Gundale et al. (2016)'s data, we explored beta diversity of these fungal endophyte communities associated with *P. contorta* trees. We hypothesized that endophyte diverstiy of *P. contorta* trees would differ either by geographic location or introduction status. If diversity is associated with geographic location rather than introduction status, then communities at each geographic location (United States, Canada, Europe, Southern Hemisphere) will be similar to each other regardless of introduction status. If diversity is related to introduction status, introduced trees will have communities similar to those where *P. contorta* is native. We expecteded to observe differences in diversity by host species regardless of whichever hypothesis is supported under the assumption that each species develops its own host-specific microbial community (Reynolds et al. 2003). Such differences in diversity could reflect the mechanisms by which *P. contorta* is able to thrive in non-native regions. *Pinus Contorta*'s ability to survive in non-native regions could be due to its ability to adapt to local microbial communities, for example. 
+
+> Another compelling opportunity provided by this dataset is an opportunity to examine some of the predictions of the hologenome theory of evolution (HGTE), specifically the pattern of phylosymbiosis, in a natural setting with non-animal based data - two areas where the theory thusfar is significantly lacking testing.  The basic idea of HGTE is that the forces of evolution do not always act on individual organisms, but instead can act on the combinatory unit of host organisms and their associated microbiota (termed the holobiont) which are increasingly understood to contribute a great number of crucial 'services' to their hosts (Bordenstein, 2015).  The specific piece of this theory testable here, phylosymbiosis, is the prediction that the net forces of evolution acting on the holobiont will lead to a pattern of evolutionary changes in the host being matched by ecological changes in the microbiota - as evolutionary distance between hosts increases, so too will ecological distance between their microbial communities.  As stated above, this specific prediction has limited support drawn from evidence from a few systems - most animal, and many labratory based, thus positioning this dataset as a unique opportunity to further test the theory in novel ways. To test these hypotheses, we performed ordinations and PERMANOVAs to determine the extent to which fungal endophyte diversity is related to geographic location, introduction status, and host species. 
+
+## 2) SETUP
+
+```{r}
+
+rm(list=ls())
+
+setwd("./")
+
+library(vegan)
+library(ggplot2)
+library(dplyr)
+library(rafalib)
+
+```
+
+## 3) DESCRIPTION OF DATA
+
+> The data for our project were drawn from a 2016 study on pine tree endophyte community compositions, specifically concerned with looking for a role for these communities in mediating successful invasions of new geographic regions (Gundale, 2016). To generate this dataset, the authors sampled for over 840 fungal endophyte 'species' from 97 host tree 'sites.' The 97 host trees sampled were primarily *Pinus contorta* individuals found in either their native ranges (Pacific northwest, USA; British Columbia, Canada) or where they have been intentionally introduced (in Europe: Finland (introduced 1920s), Scotland (1851), and Sweden (1920s). In the Southern Hemisphere: New Zeland (1802) and Chile (1970s)) (Gundale, 2014). These *P. contorta* samples were contrasted in their non-native ranges with two other taxa native in those regions: closely related *P. sylvestris* in Europe, and distantly related *Nothofagus spp.* at the SH sites. All of the stands sampled from were between 25 and 50 years old, and in Europe and SH sites native species were found in stands adjacent to the introduced *P. contorta*.
+
+## 4) LOAD THE DATA
+
+```{r}
+
+endophyte.data <- read.csv("./Endophyte communities and trees for assignment 2.csv", header = TRUE)
+endophyte.data.full <- read.csv("./Endophyte communities and trees for assignment 2.csv", header = TRUE)
+endophyte.data <- endophyte.data[,-1]
+
+# Average calculated by grouping the otu relative abundance columns (species) by host tree identity (site 'location') and finding a mean value for each otu for each host.
+endophyte.by.species.avg <- group_by(endophyte.data.full, species) %>% dplyr::summarise_each(funs(mean))
+avg.noname <- endophyte.by.species.avg[,-1]
+
+# Calculating Bray-Curtis distance matrix for all points, and also the average by host identity points.
+endophyte.bray <- vegdist(endophyte.data, method = "bray")
+
+avg.bray <- vegdist(avg.noname, method = "bray")
+
+endophyte.pcoa.bray <- cmdscale(endophyte.bray, eig = TRUE, k = 3)
+
+avg.pcoa.bray <- cmdscale(avg.bray, eig=TRUE, k = 3)
+
+
+explainvar1.bray <- round(endophyte.pcoa.bray$eig[1] / sum(endophyte.pcoa.bray$eig), 3) * 100
+explainvar2.bray <- round(endophyte.pcoa.bray$eig[2] / sum(endophyte.pcoa.bray$eig), 3) * 100
+explainvar3.bray <- round(endophyte.pcoa.bray$eig[3] / sum(endophyte.pcoa.bray$eig), 3) * 100
+
+
+explainvar1.bray.avg <- round(avg.pcoa.bray$eig[1] / sum(avg.pcoa.bray$eig), 3) * 100
+explainvar2.bray.avg <- round(avg.pcoa.bray$eig[2] / sum(avg.pcoa.bray$eig), 3) * 100
+explainvar3.bray.avg <- round(avg.pcoa.bray$eig[3] / sum(avg.pcoa.bray$eig), 3) * 100
+
+# Groups defined by species for later plot coloring
+group <- factor(endophyte.data.full$species)
+
+group.avg <- factor(endophyte.by.species.avg$species)
+
+# Adding site numbers as names manually
+row.names(endophyte.pcoa.bray$points) <- 1:97
+
+endophyte.data.location <- endophyte.data.full
+
+# Adding in specific tree site sample locations not in the original dataset, but later obtained from the author through outside communication.
+endophyte.data.location$location <- c(rep("USA", 18), rep("Chile", 5), rep("New Zeland", 5), rep("Canada", 17), rep("Finland", 6), rep("Scotland", 4), rep("Sweden", 6), rep("Chile", 5), rep("New Zeland", 5), rep("Finland", 6), rep("Scotland", 4), rep("Sweden", 6), rep("Chile", 5), rep("New Zeland", 5))
+
+
+# Below location analysis done to make average by location plots, like the average by species analysis above.
+endophyte.by.location.avg <- group_by(endophyte.data.location, location) %>% dplyr::summarise_each(funs(mean))
+avg.loc.nonames <- endophyte.by.location.avg[,-1]
+avg.loc.nonames <- avg.loc.nonames[,-1]
+
+loc.avg <- factor(endophyte.by.location.avg$location)
+
+avg.loc.bray <- vegdist(avg.loc.nonames, method = "bray")
+
+avg.pcoa.loc.bray <- cmdscale(avg.loc.bray, eig=TRUE, k = 3)
+
+explainvar1.bray.loc.avg <- round(avg.pcoa.loc.bray$eig[1] / sum(avg.pcoa.loc.bray$eig), 3) * 100
+explainvar2.bray.loc.avg <- round(avg.pcoa.loc.bray$eig[2] / sum(avg.pcoa.loc.bray$eig), 3) * 100
+
+
+# As the original dataset has many repeats of the same species (P. contorta) that are counted differently, I manually added a new variable that counts all types of contorta sites (introduced, invasive, native) as the same species. This shrinks the actual number of species to three, which is correct.
+# Calculated the bray curtis distances by species below.
+endophyte.data.species <- endophyte.data.full
+
+endophyte.data.species$species <- c(rep("P. contorta", 61), rep("Nothofagus", 10), rep("P. sylvestris", 16), rep("P. contorta", 10))
+
+species <- factor(endophyte.data.species$species)
+
+endophyte.data.species <- endophyte.data.species[,-1]
+
+endophyte.bray.spc <- vegdist(endophyte.data.species, method = "bray")
+
+endophyte.pcoa.bray.spc <- cmdscale(endophyte.bray.spc, eig = TRUE, k = 3)
+
+
+explainvar1.bray.spc <- round(endophyte.pcoa.bray.spc$eig[1] / sum(endophyte.pcoa.bray.spc$eig), 3) * 100
+explainvar2.bray.spc <- round(endophyte.pcoa.bray.spc$eig[2] / sum(endophyte.pcoa.bray.spc$eig), 3) * 100
+explainvar3.bray.spc <- round(endophyte.pcoa.bray.spc$eig[3] / sum(endophyte.pcoa.bray.spc$eig), 3) * 100
+
+
+# Bray-Curtis for manually added introduction status for each point
+endophyte.data.intro <- endophyte.data.full
+
+endophyte.data.intro$species <- c(rep("Native", 18), rep("Introduced", 10), rep("Native", 17), rep("Introduced", 16), rep("Native", 10), rep("Native", 16), rep("Introduced", 10))
+
+introduction <- factor(endophyte.data.intro$species)
+
+endophyte.data.intro <- endophyte.data.intro[,-1]
+
+endophyte.bray.int <- vegdist(endophyte.data.intro, method = "bray")
+
+endophyte.pcoa.bray.int <- cmdscale(endophyte.bray.int, eig = TRUE, k = 3)
+
+explainvar1.bray.int <- round(endophyte.pcoa.bray.int$eig[1] / sum(endophyte.pcoa.bray.int$eig), 3) * 100
+explainvar2.bray.int <- round(endophyte.pcoa.bray.int$eig[2] / sum(endophyte.pcoa.bray.int$eig), 3) * 100
+explainvar3.bray.int <- round(endophyte.pcoa.bray.int$eig[3] / sum(endophyte.pcoa.bray.int$eig), 3) * 100
+
+```
+
+## 5) ANALYSIS: FIGURES AND STATISTICS
+
+```{r, tidy=TRUE}
+
+# Colored by species, no site number
+# mypar() function from rafalib picks plot paramaters automatically based on data.
+# Ordiellipse here taken from vegan package, here used to draw shaded 95% confidence standard error ellipses.
+mypar()
+plot(endophyte.pcoa.bray$points[,1],endophyte.pcoa.bray$points[,2],bg=as.numeric(group),pch=21,
+     cex = 1.5,
+     xlab=paste("PCoA 1 (", explainvar1.bray, "%)", sep = ""),
+     ylab=paste("PCoA 2 (", explainvar2.bray, "%)", sep = ""),
+     main = "Bray Curtis PCoA, colored by site identity, 95% se ellipses")
+legend("bottomright",levels(group),col=seq(along=levels(group)),pch=15, cex = .5)
+ordiellipse(endophyte.pcoa.bray,group,conf = .95, label = TRUE, draw = c("polygon"), kind = c("se"), alpha = 150, col = seq(along=levels(group)))
+
+
+# Average by site plot
+mypar()
+plot(avg.pcoa.bray$points[,1],avg.pcoa.bray$points[,2],bg=as.numeric(group.avg),pch=21,
+     cex = 1.5,
+     xlab=paste("PCoA 1 (", explainvar1.bray.avg, "%)", sep = ""),
+     ylab=paste("PCoA 2 (", explainvar2.bray.avg, "%)", sep = ""),
+     main = "Average Bray Curtis PCoA differences by site identity")
+legend("bottomleft",levels(group.avg),col=seq(along=levels(group.avg)),pch=15, cex = 1)
+
+# Average by location plot
+mypar()
+plot(avg.pcoa.loc.bray$points[,1],avg.pcoa.loc.bray$points[,2],bg=as.numeric(loc.avg),pch=21,
+     cex = 1.5,
+     xlab=paste("PCoA 1 (", explainvar1.bray.loc.avg, "%)", sep = ""),
+     ylab=paste("PCoA 2 (", explainvar2.bray.loc.avg, "%)", sep = ""),
+     main = "Average Bray Curtis PCoA differences by host location")
+legend("bottom",levels(loc.avg),col=seq(along=levels(loc.avg)),pch=15, cex = 1)
+
+# species plot
+mypar()
+plot(endophyte.pcoa.bray.spc$points[,1],endophyte.pcoa.bray.spc$points[,2],bg=as.numeric(species),pch=21,
+     cex = 1.5,
+     xlab=paste("PCoA 1 (", explainvar1.bray.spc, "%)", sep = ""),
+     ylab=paste("PCoA 2 (", explainvar2.bray.spc, "%)", sep = ""),
+     main = "Bray Curtis PCoA, colored by host species, 95% se ellipses")
+legend("bottomright",levels(species),col=seq(along=levels(species)),pch=15, cex = 1)
+ordiellipse(endophyte.pcoa.bray.spc,species,conf = .95, label = TRUE, draw = c("polygon"), kind = c("se"), alpha = 150, col = seq(along=levels(species)))
+
+# Introduction status plot
+mypar()
+plot(endophyte.pcoa.bray.int$points[,1],endophyte.pcoa.bray.int$points[,2],bg=as.numeric(introduction),pch=21,
+     cex = 1.5,
+     xlab=paste("PCoA 1 (", explainvar1.bray.int, "%)", sep = ""),
+     ylab=paste("PCoA 2 (", explainvar2.bray.int, "%)", sep = ""),
+     main = "Bray Curtis PCoA, colored by introduction status, 95% se ellipses")
+legend("bottomright",levels(introduction),col=seq(along=levels(introduction)),pch=15, cex = 1)
+ordiellipse(endophyte.pcoa.bray.int,introduction,conf = .95, label = TRUE, draw = c("polygon"), kind = c("se"), alpha = 150, col = seq(along=levels(introduction)))
+
+
+```
+> PERMANOVA of community structure vs host tree species.
+
+
+```{r}
+
+# As the original dataset has many repeats of the same species (P. contorta) that are counted differently, I manually added a new variable that counts all types of contorta sites (introduced, invasive, native) as the same species. This shrinks the actual number of species to three, which is correct.
+endophyte.data.species <- endophyte.data.full
+
+endophyte.data.species$species <- c(rep("P. contorta", 61), rep("Nothofagus", 10), rep("P. sylvestris", 16), rep("P. contorta", 10))
+
+species <- factor(endophyte.data.species$species)
+
+adonis(endophyte.data ~ species, method = "bray", permutations = 999)
+
+```
+> PERMANOVA of community structure vs location. 
+
+
+```{r}
+location <- factor(endophyte.data.location$location)
+
+adonis(endophyte.data ~ location, method = "bray", permutations = 999)
+```
+> PERMANOVA of community structure vs introduction status. 
+
+
+```{r}
+#Introduction status of each host tree also derived from additional data obtained from paper author, here manually assigned to each host tree.
+endophyte.data.intro <- endophyte.data.full
+
+endophyte.data.intro$intro <- c(rep("Native", 18), rep("Introduced", 10), rep("Native", 17), rep("Introduced", 16), rep("Native", 10), rep("Native", 16), rep("Introduced", 10))
+
+introduction <- factor(endophyte.data.intro$intro)
+
+adonis(endophyte.data ~ introduction, method = "bray", permutations = 999)
+
+
+
+```
+
+## 6) DISCUSSION AND CONCLUSION
+
+> Through our PCoA and PERMANOVA analyses, we found strong support for our hypothesis that host location, rather than introduction status or species, has the largest effect in structuring endophyte communities. In all of the ordinations performed, it was clear that sites cluster most strongly with geographically similar sites, despite the fact that these geographically similar sites are a mix of native and introduced species pairs. The clustering in our ordinations stands in contrast to the expected result if introduction status or host species were important in structuring these communities, namely that geographically dissimilar sites would be grouped together according to their host species identity and introduction status (e.g. USA *P. contorta* source population clustering with SH *P. contorta* sink populations).
+
+> These compelling visualizations were supported by our PERMANOVA results, which found that host location was a significant predictor of relative OTU abundances (R^2 of 0.251, p < 0.001). However, introduction status and host species were both found to not be significant factors in this analysis (p <0.001 for both, but R^2 of 0.028 and 0.076), further supporting our hypothesis for the importance of geographic location and refuting our competing hypotheses that introduction status and/or host species matter. These data could have implications for current understanding of invasive tree species. The invasion success of *P. contorta* could be related to its ability to form these flexible, non-specific endophyte associations with diverse sets of microbes present in a particular environment. If there is a positive plant-soil feedback, where microbes present in the soil from native trees are benefiting the growth of invasive *P. contorta*, then the invasion success of *P. contorta* might be attributed to the soil microbial communities. Future studies should compare *P. contorta* growth in different geographic locations to determine which geographic locations have communities that enhance or hinder plant growth. This could provide further insights into the invasive success of this tree species. 
+
+> More broadly this finding has implications for our understanding of the evolutionary and co-evolutionary relationships between hosts and their microbial associates. In contrast to the predictions of the eco-evolutionary pattern of phylosymbiosis that more closely related host species should show more similar microbial communities (Brooks, 2016), we saw here instead that evolutionary distance of hosts was not important as it relates to endophyte community structure. In this dataset, fungal communities assembled most based on what was present in their geographic region and did not appear to maintain the associations formed in their native range - associations co-evoloved over time and thought to lend the largest fitness benefit to hosts under the predictions of phylosymbiosis. One possible reason for this apparent refutation of pylosymbiosis that would be interesting to investigate in the future, but impossible to test with this current dataset, would be that the fungal associations formed by these pine trees are functionally similar even if they are taxanomically disparate in the native and introduced ranges studied. The difference in taxonomy of these communities may not actually be that important evolutionarily if they are serving the same functional purposes.
+
+## 7) REFERENCES
+
+> Bordenstein SR, Theis KR PLoS Biol (2015) 13(8): e1002226. doi:10.1371/journal.pbio.1002226
+
+> Brooks AW, Kohl KD, Brucker RM, et al. PLoS Biol 14 (2016) 11: e2000225. doi:10.1371/journal.pbio.2000225
+
+> Gundale, M.J., Almeida, J.P., Wallander, H. et al. J Ecol (2016) 104: 1219–1232. doi:10.1111/1365-2745.12595
+
+> Gundale, M.J., Pauchard, A., Langdon, B. et al. Biol Invasions (2014) 16: 591. doi:10.1007/s10530-013-0610-0
+
+> Hawkes, C.V. (2007) Are invaders moving targets? The generality and persistence
+of advantages in size, reproduction, and enemy release in invasive plant
+species with time since introduction. American Naturalist, 170, 832-843.
+
+> Klironomos, J.N. (2002) Feedback with soil biota contributes to plant rarity
+and invasiveness in communities. Nature, 417, 67-70.
+
+> Leger, E.A. & Rice, K.J. (2003) Invasive California poppies (Eschscholzia californica
+Cham.) grow larger than native individuals under reduced competition.
+Ecology Letters, 6, 257-264.
+
+> Reynolds, H. L., Packer, A., Bever, J. D., & Clay, K. (2003). Grassroots ecology: plant-microbe-soil interactions as drivers of plant community structure and dynamics. Ecology, 84(9), 2281-2291.
+
+> Shea, K. & Chesson, P. (2002) Community ecology theory as a framework for
+biological invasions. Trends in Ecology & Evolution, 17, 170-176.
+
+> van der Putten, W.H., Kowalchuk, G.A., Brinkman, E.P., Doodeman, G.T.A.,
+van der Kaaij, R.M., Kamp, A.F.D., Menting, F.B.J. & Veenendaal, E.M.
+(2007) Soil feedback of exotic savanna grass relates to pathogen absence and
+mycorrhizal selectivity. Ecology, 88, 978-988.
