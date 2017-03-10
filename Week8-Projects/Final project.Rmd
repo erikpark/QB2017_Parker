@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 
 ## ABSTRACT
 
-> The purpose of this project was to investigate beta diversity of endophyte communities associated with three species of native and introduced pine trees in six geographic locations. We tested the competing hypotheses that geographic location, introduction status, or host species would be more important in structuring these fungal communities. Through our analyses, we found that while host species and location were important factors in shaping these communities, introduction status was not. These results could have implications for current understanding of invasion success of pine trees specifically, and more generally, evolutionary relationships between hosts and their microbes.
+> The purpose of this project was to investigate beta diversity of endophyte communities associated with three species of native and introduced pine trees in six geographic locations. We tested the competing hypotheses that geographic location, introduction status, or host species would be more important in structuring these fungal communities. Through our analyses, we found that while location was important factors in shaping these communities, introduction status and host species were not. These results could have implications for current understanding of invasion success of pine trees specifically, and more generally, evolutionary relationships between hosts and their microbes.
 
 ## 1) INTRODUCTION
 
